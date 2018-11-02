@@ -126,6 +126,9 @@ extern "C" {
 	//void* cSTIR_imagesDifference(void* first, void* second, int rimsize);
 	void* cSTIR_writeImage(void* ptr_i, const char* filename); 
 
+    // ParametricImageData methods
+    //void* cSTIR_getParametricImageDimensions(const void* ptr, PTR_INT ptr_data);
+
 	// Data container methods
 	void* cSTIR_norm(const void* ptr_x);
 	void*	cSTIR_dot(const void* ptr_x, const void* ptr_y);

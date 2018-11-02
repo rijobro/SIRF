@@ -85,7 +85,9 @@ void* cSTIR_newObject(const char* name)
 		if (boost::iequals(name, "TruncateToCylindricalFOVImageProcessor"))
 			return newObjectHandle<CylindricFilter3DF>();
 		if (boost::iequals(name, "EllipsoidalCylinder"))
-			return newObjectHandle<EllipsoidalCylinder>();
+            return newObjectHandle<EllipsoidalCylinder>();
+        /*if (boost::iequals(name, "ParametricImageData"))
+            return newObjectHandle<ParametricImageData>();*/
 		return unknownObject("object", name, __FILE__, __LINE__);
 	}
 	CATCH;
@@ -206,11 +208,16 @@ void* cSTIR_objectFromFile(const char* name, const char* filename)
 				sptr(new PETAcquisitionDataInFile(filename));
 			return newObjectHandle(sptr);
 		}
-		if (boost::iequals(name, "ListmodeToSinograms")) {
-			shared_ptr<ListmodeToSinograms>
-				sptr(new ListmodeToSinograms(filename));
-			return newObjectHandle(sptr);
-		}
+        if (boost::iequals(name, "ListmodeToSinograms")) {
+            shared_ptr<ListmodeToSinograms>
+                sptr(new ListmodeToSinograms(filename));
+            return newObjectHandle(sptr);
+        }
+        if (boost::iequals(name, "ParametricImageData")) {
+            shared_ptr<ParametricImageData>
+                sptr(ParametricImageData::read_from_file(filename));
+            return newObjectHandle(sptr);
+        }
 		return unknownObject("object", name, __FILE__, __LINE__);
 	}
 	CATCH;
@@ -1023,7 +1030,25 @@ void* cSTIR_setImageData(const void* ptr_im, size_t ptr_data)
 	}
 	CATCH;
 }
-
+/*
+extern "C"
+void*
+cSTIR_getParametricImageDimensions(const void* ptr, size_t ptr_dim)
+{
+    try {
+        int* dim = (int*)ptr_dim;
+        ParametricImageData& id = objectFromHandle<ParametricImageData>(ptr);
+        if (id.get_dimensions(dim)) {
+                ExecutionStatus status("not a regular image", __FILE__, __LINE__);
+                DataHandle* handle = new DataHandle;
+                handle->set(0, &status);
+                return (void*)handle;
+        }
+        return new DataHandle;
+    }
+    CATCH;
+}
+*/
 extern "C"
 void*
 cSTIR_norm(const void* ptr_x)

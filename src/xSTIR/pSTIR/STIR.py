@@ -573,6 +573,60 @@ class ImageData(DataContainer):
 
 DataContainer.register(ImageData)
 
+
+class ParametricImageData:
+    """Class for parametric PET image data objects.
+
+        ParametricImageData objects contains both geometric data and the actual voxel
+        values. You have to use the `as_array` method to get an array with
+        the voxel values, and use the `fill` function to change the voxel values.
+        """
+
+    def __init__(self, arg=None):
+        """Create an ImageData object
+
+        Arguments:
+        str            : read the object from a file specified by <arg>
+                         (the file format has to be support by STIR).
+        """
+        self.name = 'ParametricImageData'
+        self.rimsize = -1
+        self.handle = None
+        if isinstance(arg, str):
+            self.handle = pystir.cSTIR_objectFromFile('ParametricImageData', arg)
+            check_status(self.handle)
+        else:
+            raise error \
+                ('wrong argument ' + repr(arg) + ' for ParametricImageData constructor')
+
+    def __del__(self):
+        '''Deallocates this ParametricImageData object.'''
+        if self.handle is not None:
+            pyiutil.deleteDataHandle(self.handle)
+
+    def same_object(self):
+        '''See DataContainer.same_object().
+        '''
+        return ParametricImageData()
+    def as_array(self):
+        '''Returns 4D Numpy ndarray with values at the voxels.'''
+        assert self.handle is not None
+        dim = numpy.ndarray((9,), dtype=numpy.int32)
+        print(dim)
+        raise error('its ok')
+        try_calling \
+            (pystir.cSTIR_getParametricImageDimensions(self.handle, dim.ctypes.data))
+        nz = dim[0]
+        ny = dim[1]
+        nx = dim[2]
+        nu = dim[3]
+        if nx == 0 or ny == 0 or nz == 0 or nu == 0:
+            raise error('ParametricImageData not available')
+        array = numpy.ndarray((nz, ny, nx, nu), dtype = numpy.float32)
+        try_calling(pystir.cSTIR_getImageData(self.handle, array.ctypes.data))
+        return array
+
+
 class ImageDataProcessor:
     '''Class for image processors.
 

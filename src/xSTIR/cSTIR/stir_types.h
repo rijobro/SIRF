@@ -58,6 +58,7 @@ limitations under the License.
 #include "stir/shared_ptr.h"
 #include "stir/SSRB.h"
 #include "stir/TruncateToCylindricalFOVImageProcessor.h"
+#include "stir/modelling/ParametricDiscretisedDensity.h"
 
 #include "stir/StirException.h"
 #include "stir/TextWriter.h"
@@ -85,7 +86,7 @@ namespace sirf {
 	typedef stir::QuadraticPrior<float> QuadPrior3DF;
 	typedef stir::DataProcessor<Image3DF> DataProcessor3DF;
 	typedef stir::TruncateToCylindricalFOVImageProcessor<float> CylindricFilter3DF;
-
+    typedef stir::ParametricVoxelsOnCartesianGrid ParametricImageData;
 }
 
 #endif
