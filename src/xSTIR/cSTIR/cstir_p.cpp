@@ -25,6 +25,7 @@ limitations under the License.
 #include "sirf/STIR/stir_types.h"
 #include "sirf/STIR/cstir_p.h"
 #include "sirf/STIR/stir_x.h"
+#include "stir/num_threads.h"
 
 using namespace stir;
 using namespace sirf;
@@ -695,3 +696,22 @@ sirf::cSTIR_FBP2DParameter(DataHandle* hp, const char* name)
 	return parameterNotFound(name, __FILE__, __LINE__);
 }
 
+void*
+sirf::cSTIR_setOpenMPParameter(const char* name, const DataHandle* hv)
+{
+	if (boost::iequals(name, "num_threads"))
+        stir::set_num_threads(dataFromHandle<int>(hv));
+	else
+		return parameterNotFound(name, __FILE__, __LINE__);
+	return new DataHandle;
+}
+
+void*
+sirf::cSTIR_OpenMPParameter(const char* name)
+{
+    if (boost::iequals(name, "max_num_threads"))
+        return dataHandle<float>(stir::get_max_num_threads());
+    if (boost::iequals(name, "default_num_threads"))
+        return dataHandle<float>(stir::get_default_num_threads());
+	return parameterNotFound(name, __FILE__, __LINE__);
+}

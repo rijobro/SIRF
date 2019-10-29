@@ -156,6 +156,8 @@ void* cSTIR_setParameter
 			return cSTIR_setOSSPSParameter(hs, name, hv);
 		else if (boost::iequals(obj, "FBP2D"))
 			return cSTIR_setFBP2DParameter(hs, name, hv);
+        else if (boost::iequals(obj,"OpenMP"))
+            return cSTIR_setOpenMPParameter(name, hv);
 		else
 			return unknownObject("object", obj, __FILE__, __LINE__);
 	}
@@ -197,6 +199,8 @@ void* cSTIR_parameter(const void* ptr, const char* obj, const char* name)
 			return cSTIR_OSSPSParameter(handle, name);
 		else if (boost::iequals(obj, "FBP2D"))
 			return cSTIR_FBP2DParameter(handle, name);
+        else if (boost::iequals(obj,"OpenMP"))
+            return cSTIR_OpenMPParameter(name);
 		return unknownObject("object", obj, __FILE__, __LINE__);
 	}
 	CATCH;

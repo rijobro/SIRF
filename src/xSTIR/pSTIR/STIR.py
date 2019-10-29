@@ -2072,3 +2072,25 @@ def make_Poisson_loglikelihood(acq_data, model = 'LinearModelForMean'):
     obj_fun = PoissonLogLikelihoodWithLinearModelForMeanAndProjData()
     obj_fun.set_acquisition_data(acq_data)
     return obj_fun
+
+class OpenMP(object):
+    """
+    Control the number of openMP threads
+    """
+    def __init__(self):
+        self.name = 'OpenMP'
+
+    def __del__(self):
+        pass
+    
+    def get_max_num_threads(self):
+        """Get the maximum number of OpenMP threads."""
+        return parms.int_par(None, self.name, 'max_num_threads')
+
+    def get_default_num_threads(self):
+        """Get the default number of OpenMP threads."""
+        return parms.int_par(None, self.name, 'default_num_threads')
+
+    def set_num_threads(self, num_threads):
+        """Set the number of OpenMP threads to be used. Use <0 for default"""
+        parms.set_int_par(None, self.name, 'num_threads', num_threads)

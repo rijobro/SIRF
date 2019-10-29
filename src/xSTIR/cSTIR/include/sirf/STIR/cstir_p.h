@@ -143,6 +143,11 @@ namespace sirf {
 	void*
 		cSTIR_FBP2DParameter(DataHandle* hp, const char* name);
 
+    void*
+		cSTIR_setOpenMPParameter(const char* name, const DataHandle* hv);
+
+	void*
+		cSTIR_OpenMPParameter(const char* name);
 }
 
 #endif
