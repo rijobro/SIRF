@@ -69,6 +69,24 @@ if (APPLE)
   endif(SHARED_LIBS_ABS_PATH)
 endif(APPLE)
 
+# If OSX, we might need some OpenMP help
+if (APPLE)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/osx_stir_openmp.cmake")
+endif(APPLE)
+
+# If OSX, we might need to assume pthreads. For this, first try to find boost_thread.
+# If that fails, then give a bit of help.
+if (APPLE)
+  find_package(Boost COMPONENTS thread QUIET)
+  if (NOT boost_thread_FOUND)
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+  endif()
+endif()
+
 ####### External packages
 
 #### we need the boost library from boost.org
