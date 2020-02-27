@@ -11,7 +11,7 @@ Options:
   -t <tmpl>, --tmpl=<tmpl>     raw data template [default: mMR_template_span11_small.hs]
   -a <attn>, --attn=<attn>     attenuation image file file [default: mu_map.hv]
   -n <norm>, --norm=<norm>     ECAT8 bin normalization file [default: norm.n.hdr]
-  -i <int>, --interval=<int>   scanning time interval to convert as string '(a,b)'
+  -I <int>, --interval=<int>   scanning time interval to convert as string '(a,b)'
                                (no space after comma) [default: (0,50)]
   -d <nxny>, --nxny=<nxny>     image x and y dimensions as string '(nx,ny)'
                                (no space after comma) [default: (127,127)]
@@ -20,6 +20,8 @@ Options:
   -o <outp>, --outp=<outp>     output file prefix [default: recon]
   -e <engn>, --engine=<engn>   reconstruction engine [default: STIR]
   -s <stsc>, --storage=<stsc>  acquisition data storage scheme [default: file]
+  -C <cnts>, --counts=<cnts>   account for delay between injection and acquisition start by shifting interval to start when counts exceed given threshold.
+  --visualisations             show visualisations
 '''
 
 ## CCP PETMR Synergistic Image Reconstruction Framework (SIRF)
@@ -45,6 +47,7 @@ from docopt import docopt
 args = docopt(__doc__, version=__version__)
 
 from ast import literal_eval
+import os
 
 from pUtilities import show_2D_array
 
@@ -66,15 +69,27 @@ tmpl_file = args['--tmpl']
 norm_file = args['--norm']
 attn_file = args['--attn']
 outp_file = args['--outp']
-list_file = existing_filepath(data_path, list_file)
-tmpl_file = existing_filepath(data_path, tmpl_file)
-norm_file = existing_filepath(data_path, norm_file)
-attn_file = existing_filepath(data_path, attn_file)
+# Check file exists (e.g., absolute path). Else prepend data_path
+if not os.path.isfile(list_file):
+    list_file = existing_filepath(data_path, list_file)
+if not os.path.isfile(tmpl_file):
+    tmpl_file = existing_filepath(data_path, tmpl_file)
+if not os.path.isfile(norm_file):
+    norm_file = existing_filepath(data_path, norm_file)
+if not os.path.isfile(attn_file):
+    attn_file = existing_filepath(data_path, attn_file)
 nxny = literal_eval(args['--nxny'])
-interval = literal_eval(args['--interval'])
+input_interval = literal_eval(args['--interval'])
 num_subsets = int(args['--subs'])
 num_subiterations = int(args['--subiter'])
 storage = args['--storage']
+count_threshold = args['--counts']
+
+if args['--visualisations']:
+    visualisations = True
+else:
+    visualisations = False
+
 
 def main():
 
@@ -97,6 +112,17 @@ def main():
     lm2sino.set_output_prefix(sino_file)
     lm2sino.set_template(tmpl_file)
 
+    if count_threshold is None:
+        interval = input_interval
+    else:
+        time_shift = lm2sino.get_time_at_which_prompt_rate_exceeds_threshold(count_threshold)
+        if time_shift < 0:
+            print("No time found at which count rate exceeds " + str(time_shift) + ", not modifying interval")
+        interval = (input_interval[0]+time_shift, input_interval[1]+time_shift)
+        print("Time at which count rate exceeds " + str(count_threshold) + " = " + str(time_shift) + " s.")
+        print("Input intervals: " + str(input_interval[0]) + ", " + str(input_interval[1]))
+        print("Modified intervals: " + str(interval[0]) + ", " + str(interval[1]))
+
     # set interval
     lm2sino.set_time_interval(interval[0], interval[1])
 
@@ -115,15 +141,17 @@ def main():
     acq_array = acq_data.as_array()
     acq_dim = acq_array.shape
     print('acquisition data dimensions: %dx%dx%dx%d' % acq_dim)
-    # select a slice appropriate for the NEMA acquisition data
-    z = 71
-    #z = acq_dim[0]//2
-    show_2D_array('Acquisition data', acq_array[0,z,:,:])
+    if visualisations:
+        # select a slice appropriate for the NEMA acquisition data
+        z = 71
+        #z = acq_dim[0]//2
+        show_2D_array('Acquisition data', acq_array[0,z,:,:])
 
     # read attenuation image
     attn_image = ImageData(attn_file)
-    attn_image_as_array = attn_image.as_array()
-    show_2D_array('Attenuation image', attn_image_as_array[z,:,:])
+    if visualisations:
+        attn_image_as_array = attn_image.as_array()
+        show_2D_array('Attenuation image', attn_image_as_array[z,:,:])
 
     # create initial image estimate of dimensions and voxel sizes
     # compatible with the scanner geometry (included in the AcquisitionData
@@ -183,11 +211,13 @@ def main():
     # reconstruct
     print('reconstructing, please wait...')
     recon.process()
+    recon.get_output().write(outp_file)
 
-    # show reconstructed image
-    image_array = recon.get_current_estimate().as_array()
-    show_2D_array('Reconstructed image', image_array[z,:,:])
-    pylab.show()
+    if visualisations:
+        # show reconstructed image
+        image_array = recon.get_current_estimate().as_array()
+        show_2D_array('Reconstructed image', image_array[z,:,:])
+        pylab.show()
 
 try:
     main()
