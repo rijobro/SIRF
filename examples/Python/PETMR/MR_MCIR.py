@@ -47,7 +47,7 @@ fname = 'grappa2_1rep.h5'
 
 
 data_path = os.path.join( os.path.abspath('/home/ofn77899') ,
-                          'brainweb', 'brainweb_single_slice')
+                          'brainweb', 'brainweb_single_slice_256')
 
 T1_files   = sorted( glob.glob(os.path.join( data_path, 'T1_mf*.nii') ) )
 T2_files   = sorted( glob.glob(os.path.join( data_path, 'T2_mf*.nii') ) )
@@ -111,6 +111,9 @@ recon.compute_gfactors(False)
 recon.process()
 ref_im = recon.get_output()
 
+ref_im.get_geometrical_info().print_info()
+
+
 print ("ref_im shape", ref_im.shape)
 
 fig, ax = plt.subplots(1)
@@ -135,13 +138,17 @@ for t1f in T1_files:
 
 ## Simulate different motion states
 ref_im_ms = ref_im.clone()
+print("ref_im")
+ref_im.get_geometrical_info().print_info()
+print("ref_im_ms")
+ref_im_ms.get_geometrical_info().print_info()
 acq_ms_sim = [0]*num_ms
 for ind in range(num_ms):
     AcqMod = pMR.AcquisitionModel(acq_ms[ind], ref_im)
     AcqMod.set_coil_sensitivity_maps(csm)
     ## @EDO: Here you will need your rotation transformation and the BrainWeb image
 
-    if True:
+    if False:
         # The saved brainweb images are real, hence requires casting to complex
         t1 = np.asarray( reg.NiftiImageData(T1_files[ind]).as_array(), dtype=np.complex64)
         # The AcquisitionModel range has shape 1,256,256
@@ -151,9 +158,13 @@ for ind in range(num_ms):
         cim = np.reshape(cim, (1,256,256))
     else:
         cim = ref_im.as_array()
-        cim = np.roll(cim, ind*5, axis=1) 
+        # cim = np.roll(cim, ind*5, axis=1) 
+        cim = np.asarray( reg.NiftiImageData(T1_files[ind]).as_array(), dtype=np.complex64)
     print ("type", cim.dtype, cim.shape)
     ref_im_ms.fill(cim)
+    print("ref_im_ms")
+    ref_im_ms.get_geometrical_info().print_info()
+
 
     acq_ms_sim[ind] = AcqMod.forward(ref_im_ms)
 
@@ -184,17 +195,24 @@ if True:
     for ms in range(len(acq_ms)):
         img = reg.NiftiImageData(T1_files[ms])
         implot.append(img.as_array())
-        # The saved brainweb images are real, hence requires casting to complex
-        t1 = np.asarray( reg.NiftiImageData(T1_files[ind]).as_array(), dtype=np.complex64)
-        # The AcquisitionModel range has shape 1,256,256
-        # We plan to put in the brainweb data that are 150,150, so requires this requires padding
-        cim = np.pad(t1, ((53,53), (53,53)), 'constant', constant_values=0)
-        # and finally reshape to (1,256,256)
-        cim = np.reshape(cim, (1,256,256))
+        if False:
+            a = reg.NiftiImageData(T1_files[ms])
+            tm = reg.AffineTransformation(transform_matrices_files[ms])
+            r = get_resampler_from_tm(tm, a)
+            b = r.adjoint(a)
+            t1 = np.asarray( b.as_array(), dtype=np.complex64)
+        else:
+            # The saved brainweb images are real, hence requires casting to complex
+            cim = np.asarray( reg.NiftiImageData(T1_files[ms]).as_array(), dtype=np.complex64)
+        # # The AcquisitionModel range has shape 1,256,256
+        # # We plan to put in the brainweb data that are 150,150, so requires this requires padding
+        # cim = np.pad(t1, ((0,106), (0,106)), 'constant', constant_values=0)
+        # # and finally reshape to (1,256,256)
+        # cim = np.reshape(cim, (1,256,256))
         g_refim.fill(cim)
-        print ("adjoint ", resamplers[ms].adjoint(g_refim).as_array().shape)
+        #print ("adjoint ", resamplers[ms].adjoint(g_refim).as_array().shape)
         implot.append(np.abs(
-            resamplers[ms].direct(g_refim).as_array()[0])
+            resamplers[ms].adjoint(g_refim).as_array()[0])
         )
 
     plotter2D( implot , titles=['MS0', 'Resampled to MS0', 
@@ -220,20 +238,74 @@ K = BlockOperator(*C)
 #K = ams[0]
 
 for i in range(len(C)):
-    print (i)
+    print ("##################################### " , i)
     a = C[i].direct(ref_im)
-    c = AcqModMs[i].adjoint(a)
-    # c.write(os.path.join(data_path, 'blah.h5'))
-    # c = pMR.ImageData(os.path.join(data_path, 'blah.h5'))
-    c.write('blah')
-    d = pMR.ImageData('blah.h5')
-    b = resamplers[i].adjoint(d)
+    if True:
+        c = AcqModMs[i].adjoint(a)
+        b = resamplers[i].adjoint(c)
+    else:
+        c.write('blah')
+        d = pMR.ImageData('blah.h5')
+        b = resamplers[i].adjoint(d)
     
     
     b = C[i].adjoint(a)
 
+x0 = ref_im.copy()
+x1 = ref_im.copy()
+for i in range(2):
+    print ("POWER METHOD ##################################### " , i)
+    
+    x0.get_geometrical_info().print_info()
+    a = K.direct(x0)
+    K.adjoint(a, out=x1)
+    x1norm = x1.norm()
+
+    print ("before multiply ##################################### " , i)
+    
+    x0.get_geometrical_info().print_info()
+    x1.multiply((1.0/x1norm), out=x0)
+    
 
 
+
+def PowerMethod(operator, iterations, x_init=None):
+    '''Power method to calculate iteratively the Lipschitz constant
+    
+    :param operator: input operator
+    :type operator: :code:`LinearOperator`
+    :param iterations: number of iterations to run
+    :type iteration: int
+    :param x_init: starting point for the iteration in the operator domain
+    :returns: tuple with: L, list of L at each iteration, the data the iteration worked on.
+    '''
+    
+    # Initialise random
+    if x_init is None:
+        x0 = operator.domain_geometry().allocate('random')
+    else:
+        x0 = x_init.copy()
+        
+    x1 = operator.domain_geometry().allocate()
+    y_tmp = operator.range_geometry().allocate()
+    s = np.zeros(iterations)
+    # Loop
+    for it in np.arange(iterations):
+        operator.direct(x0, out=y_tmp)
+        operator.adjoint(y_tmp, out=x1)
+        x1norm = x1.norm()
+        if hasattr(x0, 'squared_norm'):
+            s[it] = x1.dot(x0) / x0.squared_norm()
+        else:
+            x0norm = x0.norm()
+            s[it] = x1.dot(x0) / (x0norm * x0norm) 
+        x1.multiply((1.0/x1norm), out=x0)
+    return np.sqrt(s[-1]), np.sqrt(s), x0
+
+
+
+
+# normK = PowerMethod(K, 25, ref_im)
 normK = K.norm(iterations=10)
 #normK = LinearOperator.PowerMethod(K, iterations=10)[0]
 #default values
