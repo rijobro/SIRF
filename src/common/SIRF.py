@@ -117,7 +117,7 @@ class DataContainer(ABC):
             other.fill(tmp)
         assert_validities(self, other)
         if out is None:
-            z = self.same_object()
+            z = self.copy()
         else:
             assert_validities(self, out)
             z = out
@@ -137,7 +137,7 @@ class DataContainer(ABC):
             other.fill(tmp)
         assert_validities(self, other)
         if out is None:
-            z = self.same_object()
+            z = self.copy()
         else:
             assert_validities(self, out)
             z = out
@@ -160,14 +160,14 @@ class DataContainer(ABC):
         assert_validities(self, other)
         one = numpy.asarray([1.0, 0.0], dtype = numpy.float32)
         if out is None:
-            z = self.same_object()
+            z = self.copy()
         else:
             assert_validities(self, out)
             z = out
         z.handle = pysirf.cSIRF_axpby \
             (one.ctypes.data, self.handle, one.ctypes.data, other.handle)
         check_status(z.handle)
-        return z;
+        return z
     def axpby(self, a,b, y, out=None, **kwargs):
         '''
         Addition for data containers.
@@ -186,7 +186,7 @@ class DataContainer(ABC):
         beta = numpy.asarray([b.real, b.imag], dtype = numpy.float32)
         
         if out is None:
-            z = self.same_object()
+            z = self.copy()
         else:
             assert_validities(self, out)
             z = out
@@ -226,14 +226,14 @@ class DataContainer(ABC):
         pl_one = numpy.asarray([1.0, 0.0], dtype = numpy.float32)
         mn_one = numpy.asarray([-1.0, 0.0], dtype = numpy.float32)
         if out is None:
-            z = self.same_object()
+            z = self.copy()
         else:
             assert_validities(self, out)
             z = out
         z.handle = pysirf.cSIRF_axpby \
             (pl_one.ctypes.data, self.handle, mn_one.ctypes.data, other.handle)
         check_status(z.handle)
-        return z;
+        return z
     def __sub__(self, other):
         '''
         Overloads - for data containers.
@@ -255,7 +255,7 @@ class DataContainer(ABC):
         assert self.handle is not None
         if type(self) == type(other):
             return self.multiply(other)
-        z = self.same_object()
+        z = self.copy()
         try:
             a = numpy.asarray([other.real, other.imag], dtype = numpy.float32)
             zero = numpy.zeros((2,), dtype = numpy.float32)
@@ -263,7 +263,7 @@ class DataContainer(ABC):
                 (a.ctypes.data, self.handle, zero.ctypes.data, self.handle)
             z.src = 'mult'
             check_status(z.handle)
-            return z;
+            return z
         except:
             raise error('wrong multiplier')
 
@@ -274,7 +274,7 @@ class DataContainer(ABC):
         other: a real or complex scalar
         '''
         assert self.handle is not None
-        z = self.same_object()
+        z = self.copy()
         try:
             a = numpy.asarray([other.real, other.imag], dtype = numpy.float32)
             zero = numpy.zeros((2,), dtype = numpy.float32)
@@ -296,7 +296,7 @@ class DataContainer(ABC):
         assert self.handle is not None
         if type(self) == type(other):
             return self.divide(other)
-        z = self.same_object()
+        z = self.copy()
         try:
             other = 1.0/other
             a = numpy.asarray([other.real, other.imag], dtype = numpy.float32)
@@ -304,7 +304,7 @@ class DataContainer(ABC):
             z.handle = pysirf.cSIRF_axpby \
                 (a.ctypes.data, self.handle, zero.ctypes.data, self.handle)
             check_status(z.handle)
-            return z;
+            return z
         except:
             raise error('wrong multiplier')
     def copy(self):
