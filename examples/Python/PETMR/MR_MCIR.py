@@ -6,7 +6,7 @@ from ccpi.utilities.display import plotter2D
 #from PETMR_MCIR import get_resampler_from_tm
 
 from ccpi.optimisation.algorithms import PDHG
-from ccpi.optimisation.functions import LeastSquares, BlockFunction, IndicatorBox, ZeroFunction
+from ccpi.optimisation.functions import L2NormSquared, BlockFunction, IndicatorBox, ZeroFunction
 from ccpi.optimisation.operators import CompositionOperator, BlockOperator, LinearOperator
 from ccpi.plugins.regularisers import FGP_TV
 
@@ -188,7 +188,7 @@ for ind in range(len(acq_ms)):
         get_resampler_from_tm(tm, ref_im)
  
     )
-if True:
+if False:
     # plot the solutions to see that with the resampler we get the same orientation
     implot = []
     g_refim = ref_im.copy()
@@ -230,79 +230,9 @@ print ("number of motion states", len(resamplers))
 # Configure the PDHG algorithm
 
 # kl = [ KullbackLeibler(b=rotated_sino, eta=(rotated_sino * 0 + 1e-5)) for rotated_sino in rotated_sinos ] 
-ls = [ LeastSquares(A=am , b=data) for am, data in zip(* (AcqModMs, acq_ms_sim)) ]
+ls = [ L2NormSquared(b=data) for data in acq_ms_sim ]
 f = BlockFunction(*ls)
 K = BlockOperator(*C)
-
-#f = kl[0]
-#K = ams[0]
-
-for i in range(len(C)):
-    print ("##################################### " , i)
-    a = C[i].direct(ref_im)
-    if True:
-        c = AcqModMs[i].adjoint(a)
-        b = resamplers[i].adjoint(c)
-    else:
-        c.write('blah')
-        d = pMR.ImageData('blah.h5')
-        b = resamplers[i].adjoint(d)
-    
-    
-    b = C[i].adjoint(a)
-
-x0 = ref_im.copy()
-x1 = ref_im.copy()
-for i in range(2):
-    print ("POWER METHOD ##################################### " , i)
-    
-    x0.get_geometrical_info().print_info()
-    a = K.direct(x0)
-    K.adjoint(a, out=x1)
-    x1norm = x1.norm()
-
-    print ("before multiply ##################################### " , i)
-    
-    x0.get_geometrical_info().print_info()
-    x1.multiply((1.0/x1norm), out=x0)
-    
-
-
-
-def PowerMethod(operator, iterations, x_init=None):
-    '''Power method to calculate iteratively the Lipschitz constant
-    
-    :param operator: input operator
-    :type operator: :code:`LinearOperator`
-    :param iterations: number of iterations to run
-    :type iteration: int
-    :param x_init: starting point for the iteration in the operator domain
-    :returns: tuple with: L, list of L at each iteration, the data the iteration worked on.
-    '''
-    
-    # Initialise random
-    if x_init is None:
-        x0 = operator.domain_geometry().allocate('random')
-    else:
-        x0 = x_init.copy()
-        
-    x1 = operator.domain_geometry().allocate()
-    y_tmp = operator.range_geometry().allocate()
-    s = np.zeros(iterations)
-    # Loop
-    for it in np.arange(iterations):
-        operator.direct(x0, out=y_tmp)
-        operator.adjoint(y_tmp, out=x1)
-        x1norm = x1.norm()
-        if hasattr(x0, 'squared_norm'):
-            s[it] = x1.dot(x0) / x0.squared_norm()
-        else:
-            x0norm = x0.norm()
-            s[it] = x1.dot(x0) / (x0norm * x0norm) 
-        x1.multiply((1.0/x1norm), out=x0)
-    return np.sqrt(s[-1]), np.sqrt(s), x0
-
-
 
 
 # normK = PowerMethod(K, 25, ref_im)
@@ -337,7 +267,7 @@ pdhg = PDHG(f = f, g = G, operator = K, sigma = sigma, tau = tau,
             max_iteration = 1000,
             update_objective_interval = 1)
 
-pdhg.run(100, verbose=False)
+pdhg.run(2, verbose=True)
 #img = convert_nifti_to_stir_ImageData(reg.NiftiImageData(os.path.basename(FDG_files[0])), templ_sino, dim)
 # img = read_2D_STIR_nii(os.path.basename(FDG_files[0]))
 solution = reg.NiftiImageData(T1_files[0]).as_array()
@@ -350,5 +280,5 @@ solution = reg.NiftiImageData(T1_files[0]).as_array()
 
 # solution2 = res.direct(solution)
 
-plotter2D([solution.as_array(), pdhg.get_output().as_array()[0]],
+plotter2D([solution, np.abs(pdhg.get_output().as_array()[0])],
           titles = ['Ground Truth (MS0)' , 'PDHG output with TV'] )
