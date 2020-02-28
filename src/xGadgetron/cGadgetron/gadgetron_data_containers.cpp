@@ -807,6 +807,7 @@ const void* ptr_b, const DataContainer& a_y)
 		w.axpby(b, v, one);
 		append(w);
 	}
+	this->set_meta_data(x.get_meta_data());
 }
 
 void
@@ -823,6 +824,7 @@ const DataContainer& a_y)
 		w.multiply(y.image_wrap(i));
 		append(w);
 	}
+	this->set_meta_data(x.get_meta_data());
 }
 
 void
@@ -839,6 +841,7 @@ const DataContainer& a_y)
 		w.divide(y.image_wrap(i));
 		append(w);
 	}
+	this->set_meta_data(x.get_meta_data());
 }
 
 float 
@@ -1287,8 +1290,9 @@ GadgetronImagesVector::set_up_geom_info()
     std::cout << "\nSetting up geometrical info for GadgetronImagesVector...\n";
 #endif
 
-    if (number() < 1)
-        return;
+    if (number() < 1) {
+		return;
+	}
 
     if (!this->sorted())
         this->sort();
@@ -1310,7 +1314,8 @@ GadgetronImagesVector::set_up_geom_info()
     // Check that read, phase and slice directions are all unit vectors
     if (!(is_unit_vector(ih1.read_dir) && is_unit_vector(ih1.phase_dir) && is_unit_vector(ih1.slice_dir))) {
         std::cout << "\nGadgetronImagesVector::set_up_geom_info(): read_dir, phase_dir and slice_dir should all be unit vectors.\n";
-        return;
+        //throw std::runtime_error("Error line 1313");
+		return;
     }
 
     // Check that the read, phase and slice directions are constant
@@ -1318,7 +1323,8 @@ GadgetronImagesVector::set_up_geom_info()
         ISMRMRD::ImageHeader &ih = image_wrap(im).head();
         if (!(are_vectors_equal(ih1.read_dir,ih.read_dir) && are_vectors_equal(ih1.phase_dir,ih.phase_dir) && are_vectors_equal(ih1.slice_dir,ih.slice_dir))) {
             std::cout << "\nGadgetronImagesVector::set_up_geom_info(): read_dir, phase_dir and slice_dir should be constant over slices.\n";
-            return;
+            //throw std::runtime_error("Error line 1321");
+			return;
         }
     }
 
@@ -1357,6 +1363,7 @@ GadgetronImagesVector::set_up_geom_info()
             float new_spacing = get_slice_spacing(ih1, ih2);
             if (std::abs(spacing[2]-new_spacing) > 1.e-4F) {
                 print_slice_distances(images_);
+				//throw std::runtime_error("Error line 1360");
                 return;
             }
         }
