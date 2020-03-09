@@ -54,6 +54,7 @@ extern "C" {
     void* cReg_NiftiImageData_norm(const void* im1_ptr, const void* im2_ptr);
     void* cReg_NiftiImageData_get_original_datatype(const void* im_ptr);
     void* cReg_NiftiImageData_crop(const void* im_ptr, PTR_INT min_index_ptr, PTR_INT max_index_ptr);
+    void* cReg_NiftiImageData_pad(const void* im_ptr, PTR_INT min_index_ptr, PTR_INT max_index_ptr, const float val);
     void* cReg_NiftiImageData_set_voxel_spacing(const void* im_ptr, const float x, const float y, const float z, const int interpolation_order);
     void* cReg_NiftiImageData_normalise_zero_and_one(const void* im_ptr);
     void* cReg_NiftiImageData_standardise(const void* im_ptr);
@@ -85,6 +86,9 @@ extern "C" {
     void* cReg_Registration_add_floating(const void* ptr, const void *im_ptr);
     void* cReg_Registration_clear_floatings(const void* ptr);
     void* cReg_Registration_get_output(const void* ptr,const int idx);
+    void* cReg_Registration_set_reference_image_filename(const void* ptr, const char* filename);
+    void* cReg_Registration_set_floating_image_filename(const void* ptr, const char* filename);
+    void* cReg_Registration_add_floating_image_filename(const void* ptr, const char* filename);
 
     // NiftyReg-based registration
     void* cReg_NiftyRegistration_set_parameter(const void* ptr, const char* par, const char* arg1, const char* arg2);

@@ -72,7 +72,6 @@ niftymomo_resample_adj = output_prefix + "niftymomo_resample_adj.nii"
 output_weighted_mean = output_prefix + "weighted_mean.nii"
 output_weighted_mean_def = output_prefix + "weighted_mean_def.nii"
 output_float = output_prefix + "reg_aladin_float.nii"
-spm_working_folder = output_prefix + "spm_working_folder"
 
 ref_aladin = sirf.Reg.NiftiImageData3D(ref_aladin_filename)
 flo_aladin = sirf.Reg.NiftiImageData3D(flo_aladin_filename)
@@ -254,12 +253,12 @@ def try_niftiimage():
         raise AssertionError("NiftiImageData standardise() or get_variance() failed.")
     if abs(im.get_mean()) > 0.0001:
         raise AssertionError("NiftiImageData standardise() or get_mean() failed.")
-    
+
     # Check normalise 
     im.normalise_zero_and_one()
     if abs(im.get_min()) > 0.0001 or abs(im.get_max()-1) > 0.0001:
         raise AssertionError("NiftiImageData normalise_between_zero_and_one() failed.")
-    
+
     # Test inner product
     in1 = x.deep_copy()
     in2 = x.deep_copy()
@@ -277,6 +276,30 @@ def try_niftiimage():
     in2.fill(in2_arr)
     if abs(inner_product - in1.get_inner_product(in2)) > 1e-4:
         raise AssertionError("NiftiImageData::get_inner_product() failed.")
+
+    # Pad then crop, should be the same
+    aa = ref_aladin
+    cc = aa.clone()
+    original_dims = aa.get_dimensions()
+
+    pad_in_min_dir = [1, 2, 3, 0, 0, 0, 0]
+    pad_in_max_dir = [4, 5, 6, 0, 0, 0, 0]
+    cc.pad(pad_in_min_dir, pad_in_max_dir, 100.)
+
+    padded_dims = cc.get_dimensions()
+    for i in range(7):
+        if padded_dims[i+1] != original_dims[i+1] + pad_in_min_dir[i] + pad_in_max_dir[i]:
+            raise AssertionError("NiftiImageData::pad failed")
+
+    # Crop back to beginning
+    cropped_min_dir = pad_in_min_dir
+    cropped_max_dir = list(cropped_min_dir)
+    for i in range(7):
+        cropped_max_dir[i] = original_dims[i+1] + cropped_min_dir[i] - 1
+
+    cc.crop(cropped_min_dir, cropped_max_dir)
+    if aa != cc:
+        raise AssertionError("NiftiImageData::pad/crop failed")
 
     time.sleep(0.5)
     sys.stderr.write('\n# --------------------------------------------------------------------------------- #\n')
@@ -649,20 +672,36 @@ def try_niftyaladin():
     na.set_parameter("SetMaxIterations", "5")
     na.set_parameter("SetPerformRigid", "1")
     na.set_parameter("SetPerformAffine", "0")
-    na.set_reference_mask(ref_mask);
-    na.set_floating_mask(flo_mask);
+    na.set_reference_mask(ref_mask)
+    na.set_floating_mask(flo_mask)
     na.process()
 
     # Get outputs
-    warped = na.get_output()
-    def_forward = na.get_deformation_field_forward()
-    def_inverse = na.get_deformation_field_inverse()
-    disp_forward = na.get_displacement_field_forward()
-    disp_inverse = na.get_displacement_field_inverse()
+    warped = na.get_output().deep_copy()
+    def_forward = na.get_deformation_field_forward().deep_copy()
+    def_inverse = na.get_deformation_field_inverse().deep_copy()
+    disp_forward = na.get_displacement_field_forward().deep_copy()
+    disp_inverse = na.get_displacement_field_inverse().deep_copy()
+    TM_forward_ = na.get_transformation_matrix_forward().deep_copy()
+    TM_inverse_ = na.get_transformation_matrix_inverse().deep_copy()
+
+    # Test via filenames
+    na.set_reference_image_filename(ref_aladin_filename)
+    na.set_floating_image_filename(flo_aladin_filename)
+    na.process()
+
+    if warped != na.get_output() or \
+        def_forward != na.get_deformation_field_forward() or \
+        def_inverse != na.get_deformation_field_inverse() or \
+        disp_forward != na.get_displacement_field_forward() or \
+        disp_inverse != na.get_displacement_field_inverse() or \
+        TM_forward_ != na.get_transformation_matrix_forward() or \
+        TM_inverse_ != na.get_transformation_matrix_inverse():
+        raise AssertionError()
 
     warped.write(aladin_warped)
-    na.get_transformation_matrix_forward().write(TM_forward)
-    na.get_transformation_matrix_inverse().write(TM_inverse)
+    TM_forward_.write(TM_forward)
+    TM_inverse_.write(TM_inverse)
     def_forward.write(aladin_def_forward)
     def_inverse.write_split_xyz_components(aladin_def_inverse_xyz)
     def_inverse.write(aladin_def_inverse)
@@ -796,6 +835,8 @@ def try_transformations(na):
 
     # Test get_inverse
     tm_inv = tm_iden.get_inverse()
+    if not tm_inv:
+        raise AssertionError()
 
     time.sleep(0.5)
     sys.stderr.write('\n# --------------------------------------------------------------------------------- #\n')
@@ -865,8 +906,8 @@ def try_resample(na):
         raise AssertionError('out = NiftyResample::forward(in) and NiftyResample::forward(out, in) do not give same result.')
 
     # TODO this doesn't work. For some reason (even with NiftyReg directly), resampling with the TM from the registration
-    # doesn't give the same result as the output from the registration itself (even with same interpolations). Even though 
-    # ref and flo images are positive, the output of the registration can be negative. This implies that linear interpolation 
+    # doesn't give the same result as the output from the registration itself (even with same interpolations). Even though
+    # ref and flo images are positive, the output of the registration can be negative. This implies that linear interpolation
     # is not used to generate final image. You would hope it's used throughout the registration process, otherwise why is it there?
     # if na.get_output() != nr1.get_output():
     #     raise AssertionError()
@@ -1106,10 +1147,14 @@ def try_quaternion():
     # Convert to quaternion
     quat = sirf.Reg.Quaternion(rotm)
     a = quat.as_array()
+    if a is None:
+        raise AssertionError()
 
     # Construct from numpy array
     expt_array = np.array([0.707107, 0., 0.707107, 0.],dtype=numpy.float32)
     expt = sirf.Reg.Quaternion(expt_array)
+    if expt is None:
+        raise AssertionError()
 
     # Compare to expected values
     if not np.allclose(quat.as_array(), expt_array, atol=1e-4):
@@ -1140,78 +1185,9 @@ def try_quaternion():
         raise AssertionError('Quaternion average failed.')
     print(average.as_array())
 
-
     time.sleep(0.5)
     sys.stderr.write('\n# --------------------------------------------------------------------------------- #\n')
     sys.stderr.write('#                             Finished Quaternion test.\n')
-    sys.stderr.write('# --------------------------------------------------------------------------------- #\n')
-    time.sleep(0.5)
-
-# SPM
-def try_spm():
-    time.sleep(0.5)
-    sys.stderr.write('\n# --------------------------------------------------------------------------------- #\n')
-    sys.stderr.write('#                             Starting SPM test...\n')
-    sys.stderr.write('# --------------------------------------------------------------------------------- #\n')
-    time.sleep(0.5)
-
-    # Resample an image with NiftyResample. Register SPM, check the result
-
-    # TM
-    translations = np.array([5.,  4., -5.], dtype=np.float32)
-    euler_angles = np.array([5., -2., -3.], dtype=np.float32)
-
-    tm = sirf.Reg.AffineTransformation(translations, euler_angles)
-
-    niftyreg_resampler = sirf.Reg.NiftyResample()
-    niftyreg_resampler.set_padding_value(0.)
-    niftyreg_resampler.set_reference_image(ref_aladin)
-    niftyreg_resampler.set_floating_image(ref_aladin)
-    niftyreg_resampler.add_transformation(tm)
-    niftyreg_resampler.set_interpolation_type_to_linear()
-    floating = niftyreg_resampler.forward(ref_aladin)
-
-    # Register with SPM
-    spm_reg = sirf.Reg.SPMRegistration()
-    spm_reg.set_reference_image(ref_aladin)
-    spm_reg.add_floating_image(floating)
-    spm_reg.add_floating_image(floating)
-    spm_reg.set_working_folder(spm_working_folder)
-    spm_reg.set_working_folder_file_overwrite(True)
-    spm_reg.set_delete_temp_files(False)
-    spm_reg.process()
-    spm_tm = spm_reg.get_transformation_matrix_forward(1)
-    spm_inv_tm = spm_tm.get_inverse()
-
-    # Check tm roughly equals inverse TM of the resampler
-    estimated_euler_angles = spm_inv_tm.get_Euler_angles()
-    estimated_translations = spm_inv_tm.as_array()[:3, 3]
-
-    input_euler_angles = tm.get_Euler_angles()
-    input_translations = translations
-
-    diff_euler_angles = 100. * (input_euler_angles - estimated_euler_angles) / input_euler_angles
-    diff_translations = 100. * (input_translations - estimated_translations) / input_translations
-
-    print("Input Euler angles:              " + np.array2string(input_euler_angles))
-    print("Estimated Euler angles:          " + np.array2string(estimated_euler_angles))
-    print("Percentage diff in Euler angles: " + np.array2string(diff_euler_angles))
-    print("Input translations:              " + np.array2string(input_translations))
-    print("Estimated translations:          " + np.array2string(estimated_translations))
-    print("Percentage diff in translations: " + np.array2string(diff_translations))
-
-    # Check differences are less than 1%
-    if any(diff_euler_angles > 1):
-        raise AssertionError("SPM registration failed (angles).")
-    if any(diff_translations > 1):
-        raise AssertionError("SPM registration failed (translations).")
-
-    if spm_reg.get_output(1) != ref_aladin:
-        raise AssertionError("SPM registration failed (image difference).")
-
-    time.sleep(0.5)
-    sys.stderr.write('\n# --------------------------------------------------------------------------------- #\n')
-    sys.stderr.write('#                             Finished SPM test.\n')
     sys.stderr.write('# --------------------------------------------------------------------------------- #\n')
     time.sleep(0.5)
 
@@ -1230,8 +1206,6 @@ def test():
     try_weighted_mean(na)
     try_affinetransformation(na)
     try_quaternion()
-    if @SPM_BOOL_STR@:
-        try_spm()
 
 
 if __name__ == "__main__":

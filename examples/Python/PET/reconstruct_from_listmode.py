@@ -22,6 +22,8 @@ Options:
   -s <stsc>, --storage=<stsc>  acquisition data storage scheme [default: file]
   -C <cnts>, --counts=<cnts>   account for delay between injection and acquisition start by shifting interval to start when counts exceed given threshold.
   --visualisations             show visualisations
+  --nifti                      save output as nifti
+  --gpu                        use gpu
 '''
 
 ## CCP PETMR Synergistic Image Reconstruction Framework (SIRF)
@@ -90,6 +92,12 @@ if args['--visualisations']:
 else:
     visualisations = False
 
+if args['--gpu']:
+    use_gpu = True
+    import sirf.Reg
+else:
+    use_gpu = False
+
 
 def main():
 
@@ -147,21 +155,37 @@ def main():
         #z = acq_dim[0]//2
         show_2D_array('Acquisition data', acq_array[0,z,:,:])
 
+    # create initial image estimate of dimensions and voxel sizes
+    # compatible with the scanner geometry (included in the AcquisitionData
+    # object acq_data) and initialize each voxel to 1.0
+    if not use_gpu:
+        image = acq_data.create_uniform_image(1.0, nxny)
+    # If using GPU, need to make sure that image is right size.
+    else:
+        image.initialise(dim=(127,320,320), vsize=(2.03125,2.08626,2.08626))
+        image.fill(1.0)
+
     # read attenuation image
     attn_image = ImageData(attn_file)
     if visualisations:
         attn_image_as_array = attn_image.as_array()
         show_2D_array('Attenuation image', attn_image_as_array[z,:,:])
+    # If gpu, make sure that attn. image dimensions match image
+    if use_gpu:
+        resampler = sirf.Reg.NiftyResample()
+        resampler.set_reference_image(image)
+        resampler.set_floating_image(attn_image)
+        resampler.set_interpolation_type_to_linear()
+        set_padding_value(0.0)
+        resampler.forward(attn_image, image)
 
-    # create initial image estimate of dimensions and voxel sizes
-    # compatible with the scanner geometry (included in the AcquisitionData
-    # object acq_data) and initialize each voxel to 1.0
-    image = acq_data.create_uniform_image(1.0, nxny)
-
-    # select acquisition model that implements the geometric
-    # forward projection by a ray tracing matrix multiplication
-    acq_model = AcquisitionModelUsingRayTracingMatrix()
-    acq_model.set_num_tangential_LORs(10)
+    if not use_gpu:
+        # select acquisition model that implements the geometric
+        # forward projection by a ray tracing matrix multiplication
+        acq_model = AcquisitionModelUsingRayTracingMatrix()
+        acq_model.set_num_tangential_LORs(10)
+    else:
+        acq_model = AcquisitionModelUsingNiftyPET()
 
     # create acquisition sensitivity model from ECAT8 normalisation data
     asm_norm = AcquisitionSensitivityModel(norm_file)
@@ -211,11 +235,15 @@ def main():
     # reconstruct
     print('reconstructing, please wait...')
     recon.process()
-    recon.get_output().write(outp_file)
+    out = recon.get_output()
+    if not args['--nifti']:
+        out.write(outp_file)
+    else:
+        sirf.Reg.NiftiImageData(out).write(outp_file)
 
     if visualisations:
         # show reconstructed image
-        image_array = recon.get_current_estimate().as_array()
+        image_array = out.as_array()
         show_2D_array('Reconstructed image', image_array[z,:,:])
         pylab.show()
 

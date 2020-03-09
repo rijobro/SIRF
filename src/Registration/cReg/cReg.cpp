@@ -390,7 +390,18 @@ void* cReg_NiftiImageData_crop(const void* im_ptr, size_t min_index_ptr, size_t 
     }
     CATCH;
 }
-
+extern "C"
+void* cReg_NiftiImageData_pad(const void* im_ptr, size_t min_index_ptr, size_t max_index_ptr, const float val)
+{
+    try {
+        NiftiImageData<float>& im = objectFromHandle<NiftiImageData<float> >(im_ptr);
+        int* min_index = (int*)min_index_ptr;
+        int* max_index = (int*)max_index_ptr;
+        im.pad(min_index,max_index,val);
+        return new DataHandle;
+    }
+    CATCH
+}
 extern "C"
 void* cReg_NiftiImageData_set_voxel_spacing(const void* im_ptr, const float x, const float y, const float z, const int interpolation_order)
 {
@@ -650,6 +661,27 @@ void* cReg_Registration_get_output(const void* ptr,const int idx)
 {
     Registration<float>& reg = objectFromHandle<Registration<float> >(ptr);
     return newObjectHandle(reg.get_output_sptr(unsigned(idx)));
+}
+extern "C"
+void* cReg_Registration_set_reference_image_filename(const void* ptr, const char* filename)
+{
+    Registration<float>& reg = objectFromHandle<Registration<float> >(ptr);
+    reg.set_reference_image_filename(filename);
+    return new DataHandle;
+}
+extern "C"
+void* cReg_Registration_set_floating_image_filename(const void* ptr, const char* filename)
+{
+    Registration<float>& reg = objectFromHandle<Registration<float> >(ptr);
+    reg.set_floating_image_filename(filename);
+    return new DataHandle;
+}
+extern "C"
+void* cReg_Registration_add_floating_image_filename(const void* ptr, const char* filename)
+{
+    Registration<float>& reg = objectFromHandle<Registration<float> >(ptr);
+    reg.add_floating_image_filename(filename);
+    return new DataHandle;
 }
 // -------------------------------------------------------------------------------- //
 //      NiftyRegistration
