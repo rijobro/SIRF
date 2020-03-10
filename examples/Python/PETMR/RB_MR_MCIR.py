@@ -16,9 +16,6 @@ pet.AcquisitionData.set_storage_scheme('memory')
 
 def get_resampler_from_tm(tm, image):
     """returns a NiftyResample object for the specified transform matrix and image"""
-
-    mat = tm.as_array()
-
     resampler = reg.NiftyResample()
     resampler.set_reference_image(image)
     resampler.set_floating_image(image)
@@ -176,14 +173,15 @@ print ("Norm of the BlockOperator ", normK)
 
 # TV regularisation
 #regularisation parameters for TV
-r_alpha = 5e-2
+r_alpha = 5e-1
 r_iterations = 100
 r_tolerance = 1e-7
 r_iso = 0
 r_nonneg = 1
 r_printing = 0
 
-TV = FGP_TV(r_alpha, r_iterations, r_tolerance, r_iso,r_nonneg,r_printing,'gpu')
+
+# TV = FGP_TV(r_alpha, r_iterations, r_tolerance, r_iso,r_nonneg,r_printing,'gpu')
 
 print ("current dir", os.getcwd())
 
@@ -197,4 +195,9 @@ pdhg = PDHG(f = f, g = G, operator = K, sigma = sigma, tau = tau,
 pdhg.run(2, verbose=True)
 
 MCIR_recon = pdhg.get_output()
-save_as_nifti(MCIR_recon, data_path + '/MCIR_recon')
+save_as_nifti(MCIR_recon, data_path + '/MCIR_recon_iter_2')
+
+pdhg.run(8, verbose=True)
+
+MCIR_recon = pdhg.get_output()
+save_as_nifti(MCIR_recon, data_path + '/MCIR_recon_iter_10')
