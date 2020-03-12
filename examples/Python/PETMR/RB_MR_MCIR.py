@@ -145,6 +145,8 @@ for ind in range(num_ms):
 
 AcqModMs = [0]*num_ms
 resamplers = [0]*num_ms
+prep_datas = [0]*num_ms
+
 for ind in range(len(acq_ms)):
     # Acquisition model for the individual motion states
     AcqModMs[ind] = pMR.AcquisitionModel(acq_ms[ind], template_mr_im)
@@ -153,13 +155,15 @@ for ind in range(len(acq_ms)):
     tm = reg.AffineTransformation(transform_matrices_files[ind])
     resamplers[ind] = get_resampler_from_tm(tm, template_mr_im)
     # Pre-process data
-    prep_data = pMR.preprocess_acquisition_data(acq_ms_sim[ind])
+    prep_datas[ind] = pMR.preprocess_acquisition_data(acq_ms_sim[ind])
 
 # Create composition operators containing acquisition models and resamplers
 C = [ CompositionOperator(am, res) for am, res in zip (*(AcqModMs, resamplers)) ]
 
 # Configure the PDHG algorithm
-ls = [ L2NormSquared(b=data) for data in acq_ms_sim ]
+# if simulated data, use acq_data_sim. For real data, use prep_datas
+ls = [ L2NormSquared(b=data) for data in acq_data_sim ]
+# ls = [ L2NormSquared(b=data) for data in prep_datas ]
 f = BlockFunction(*ls)
 K = BlockOperator(*C)
 normK = K.norm(iterations=10)
