@@ -42,7 +42,7 @@ def save_as_nifti(im, filename):
 
 # Get files
 data_path = os.path.join( '/home/rich/Documents/Data', 'brainweb_single_slice_256')
-transform_matrices_files  = sorted( glob.glob(os.path.join( data_path, 'fwd_tm*_trans.txt') ) )
+transform_matrices_files  = sorted( glob.glob(os.path.join( data_path, 'fwd_tm_mf*.txt') ) )
 T1_template = os.path.join( data_path, 'T1_mf0.nii')
 mumap_template = os.path.join( data_path, 'mumap_mf0.nii')
 FDG_template = os.path.join( data_path, 'FDG_mf0.nii')
@@ -161,8 +161,8 @@ for ind in range(len(acq_ms)):
 C = [ CompositionOperator(am, res) for am, res in zip (*(AcqModMs, resamplers)) ]
 
 # Configure the PDHG algorithm
-# if simulated data, use acq_data_sim. For real data, use prep_datas
-ls = [ L2NormSquared(b=data) for data in acq_data_sim ]
+# if simulated data, use acq_ms_sim. For real data, use prep_datas
+ls = [ L2NormSquared(b=data) for data in acq_ms_sim ]
 # ls = [ L2NormSquared(b=data) for data in prep_datas ]
 f = BlockFunction(*ls)
 K = BlockOperator(*C)
