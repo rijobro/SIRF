@@ -334,13 +334,15 @@ def main():
     outp_file += "_Reg-" + regularisation
     outp_file += "_nGates" + str(len(sino_files))
 
-    for i in range(0, num_iters, save_interval):
-        pdhg.run(save_interval, verbose=True)
-        out = pdhg.get_output()    
-        if not nifti:
-            out.write(outp_file + "_iters" + str(i+save_interval))
-        else:
-            reg.NiftiImageData(out).write(outp_file + "_iters" + str(i+save_interval))
+    for i in range(1,num_iters+1):
+        pdhg.run(1, verbose=True)
+        # If need to save
+        if i==num_iters+1 or i%save_interval==0:
+            out = pdhg.get_output() 
+            if not nifti:
+                out.write(outp_file + "_iters" + str(i))
+            else:
+                reg.NiftiImageData(out).write(outp_file + "_iters" + str(i))
 
     if visualisations:
         # show reconstructed image
