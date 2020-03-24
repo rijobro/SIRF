@@ -7,8 +7,8 @@ Options:
   -T <pattern>, --trans=<pattern>     transformation pattern (e.g., tm_ms*.txt). Enclose in quotations.
   -t <str>, --trans_type=<str>        transformation type (tm, disp, def) [default: tm]
   -S <pattern>, --sino=<pattern>      sinogram pattern (e.g., sino_ms*.hs). Enclose in quotations.
-  -a <pattern>, --attn=<pattern>      attenuation pattern (e.g., attn_ms*.hv). Enclose in quotations.
   -R <pattern>, --rand=<pattern>      randoms pattern (e.g., rand_ms*.hs). Enclose in quotations.
+  -a <attn>, --attn=<attn>            attenuation image file
   -n <norm>, --norm=<norm>            ECAT8 bin normalization file
   -i <int>, --iter=<int>              num iterations [default: 10]
   -r <string>, --reg=<string>         regularisation ("none","FGP_TV", ...) [default: none]
@@ -17,6 +17,7 @@ Options:
                                       (no space after comma) [default: (127,127)]
   --visualisations                    show visualisations
   --nifti                             save output as nifti
+  --gpu                               use gpu
   -v <int>, --verbosity=<int>         STIR verbosity [default: 0]
   -s <int>, --save_interval=<int>     save every x iterations [default: 10]
 """
@@ -71,16 +72,20 @@ def check_file_exists(filename):
 # Multiple files
 trans_pattern = str(args['--trans'])
 sino_pattern = str(args['--sino'])
-attn_pattern = str(args['--attn'])
 rand_pattern = str(args['--rand'])
 num_iters = int(args['--iter'])
 regularisation = str(args['--reg'])
 trans_type = str(args['--trans_type'])
 
-if attn_pattern is None:
-    attn_pattern = ""
 if rand_pattern is None:
     rand_pattern = ""
+
+# Attenuation
+attn_file = None
+if args['--attn']:
+    attn_file = str(args['--attn'])
+    if not os.path.isfile(attn_file):
+        raise error("Attenuation file not found: " + attn_file)
 
 # Norm
 norm_file = None
@@ -105,6 +110,11 @@ if args['--nifti']:
 else:
     nifti = False
 
+if args['--gpu']:
+    use_gpu = True
+else:
+    use_gpu = False
+
 # Verbosity
 pet.set_verbosity(int(args['--verbosity']))
 
@@ -112,11 +122,11 @@ pet.set_verbosity(int(args['--verbosity']))
 save_interval = int(args['--save_interval'])
 
 
-def get_resampler_from_trans(trans, image):
+def get_resampler_from_trans(trans, ref, flo):
     """returns a NiftyResample object for the specified transform and image"""
     resampler = reg.NiftyResample()
-    resampler.set_reference_image(image)
-    resampler.set_floating_image(image)
+    resampler.set_reference_image(ref)
+    resampler.set_floating_image(flo)
     resampler.add_transformation(trans)
     resampler.set_padding_value(0)
     resampler.set_interpolation_type_to_linear()
@@ -148,7 +158,6 @@ def main():
         raise AssertionError("--sino missing")
     trans_files = sorted(glob(trans_pattern))
     sino_files = sorted(glob(sino_pattern))
-    attn_files = sorted(glob(attn_pattern))
     rand_files = sorted(glob(rand_pattern))
 
     num_ms = len(sino_files)
@@ -163,10 +172,6 @@ def main():
     if len(rand_files) > 0 and len(rand_files) != num_ms:
         raise AssertionError("#rand should match #sinos. "
                              "#sinos = " + str(num_ms) + ", #rand = " + str(len(rand_files)))
-
-    # For attn, there should be 0, 1 or num_ms images
-    if len(attn_files) != 0 and len(attn_files) != 1 and len(attn_files) != num_ms:
-        raise AssertionError("#attn should be 0, 1 or #sinos")
     
     ############################################################################################
     # Read input
@@ -182,7 +187,6 @@ def main():
         raise error("Unknown transformation type")
 
     sinos_raw = [pet.AcquisitionData(file) for file in sino_files]
-    attns = [pet.ImageData(file) for file in attn_files]
     rands = [pet.AcquisitionData(file) for file in rand_files]
 
     # If any sinograms contain negative values (shouldn't be the case), set them to 0
@@ -202,19 +206,47 @@ def main():
     ############################################################################################
 
     image = sinos[0].create_uniform_image(1.0, nxny)
+    # If using GPU, need image estimate to be correct size
+    if use_gpu:
+        image.initialise(dim=(127,320,320), vsize=(2.03125,2.08626,2.08626))
+        image.fill(1.0)
+
+    ############################################################################################
+    # Get attenuation image
+    ############################################################################################
+
+    if attn_file:
+        attn_im = pet.ImageData(attn_file)
+        attns = [0]*num_ms
+        # if using gpu, need to ensure attn image is same size as reconstructed im
+        if use_gpu:
+            attn_ref_size = image
+        else:
+            attn_ref_size = attn_im
+        for ind in range(num_ms):
+            resampler = get_resampler_from_trans(trans[ind], attn_ref_size, attn_im)
+            attns[ind] = resampler.forward(attn_im)
 
     ############################################################################################
     # Set up resamplers
     ############################################################################################
 
-    resamplers = [get_resampler_from_trans(tran, image) for tran in trans]
+    resamplers = [get_resampler_from_trans(tran, image, image) for tran in trans]
 
     ############################################################################################
     # Set up acquisition models
     ############################################################################################
 
     print("Setting up acquisition models...")
-    acq_models = num_ms * [pet.AcquisitionModelUsingRayTracingMatrix()]
+    if not use_gpu:
+        print("Using CPU projector...")
+        # select acquisition model that implements the geometric
+        # forward projection by a ray tracing matrix multiplication
+        acq_models = num_ms * [pet.AcquisitionModelUsingRayTracingMatrix()]
+    else:
+        print("Using GPU projector...")
+        # If using GPU, use the niftypet projector
+        acq_models = num_ms * [pet.AcquisitionModelUsingNiftyPET()]
 
     # If present, create ASM from ECAT8 normalisation data
     asm_norm = None
@@ -225,13 +257,8 @@ def main():
     for ind in range(num_ms):
         # Create attn ASM if necessary
         asm_attn = None
-        if len(attns) == num_ms:
+        if attn_file:
             asm_attn = get_asm_attn(sinos[ind], attns[ind], acq_models[ind])
-        elif len(attns) == 1:
-            print("Resampling attn im " + str(ind) + " into required motion state...")
-            resampler = get_resampler_from_trans(trans[ind], attns[0])
-            resampled_attn = resampler.forward(attns[0])
-            asm_attn = get_asm_attn(sinos[ind], resampled_attn, acq_models[ind])
 
         # Get ASM dependent on attn and/or norm
         asm = None
@@ -296,20 +323,24 @@ def main():
 
     # Get filename
     outp_file = outp_prefix
-    if len(attn_files) > 0:
+    if attn_file:
         outp_file += "_wAC"
     if norm_file:
         outp_file += "_wNorm"
+    if use_gpu:
+        outp_file += "_wGPU"
+    else:
+        outp_file += "_wCPU"
     outp_file += "_Reg-" + regularisation
     outp_file += "_nGates" + str(len(sino_files))
 
-    for i in range(1, num_iters+1, save_interval):
+    for i in range(0, num_iters, save_interval):
         pdhg.run(save_interval, verbose=True)
         out = pdhg.get_output()    
         if not nifti:
-            out.write(outp_file + "_iters" + str(i))
+            out.write(outp_file + "_iters" + str(i+save_interval))
         else:
-            reg.NiftiImageData(out).write(outp_file + "_iters" + str(i))
+            reg.NiftiImageData(out).write(outp_file + "_iters" + str(i+save_interval))
 
     if visualisations:
         # show reconstructed image
