@@ -59,6 +59,19 @@ def check_file_exists(filename):
         raise error('File not found: %s' % filename)
 
 
+def make_sino_positive(sino):
+    """If sino has any -ve elements, set to 0."""
+    sino_arr = sino.as_array()
+    if (sino_arr < 0).any():
+        print("Input sinogram contains -ve elements. Setting to 0...")
+        sino_pos = sino.clone()
+        sino_arr[sino_arr < 0] = 0
+        sino_pos.fill(sino_arr)
+        return sino_pos
+    else:
+        return sino
+
+
 # Sinogram. if sino not found, get the one in the example data
 sino_file = args['--sino']
 if not file_exists(sino_file):
@@ -75,8 +88,13 @@ outp_prefix = str(args['--outp'])
 
 def main():
 
+    print("Reading input...")
+
     sino = pet.AcquisitionData(sino_file)
-    image = acq_data.create_uniform_image(1.0, nxny)
+    sino = make_sino_positive(sino)
+    image = sino.create_uniform_image(1.0, nxny)
+
+    print("Setting up acquisition model...")
 
     acq_model = pet.AcquisitionModelUsingRayTracingMatrix()
     acq_model.set_up(sino, image)
@@ -104,25 +122,17 @@ def main():
     tau = 1/(sigma*normK**2)
     print("Norm of the BlockOperator ", normK)
 
-    if regularisation == 'none':
-        G = IndicatorBox(lower=0)
-    elif regularisation == 'FGP_TV':
-        r_alpha = 5e-1
-        r_iterations = 100
-        r_tolerance = 1e-7
-        r_iso = 0
-        r_nonneg = 1
-        r_printing = 0
-        G = FGP_TV(r_alpha, r_iterations, r_tolerance, r_iso, r_nonneg, r_printing, 'gpu')
-    else:
-        raise error("Unknown regularisation")
+    # No regularisation, only positivity constraints
+    G = IndicatorBox(lower=0)
+    
+    print("Creating up reconstructor...")
 
     pdhg = PDHG(f=f, g=G, operator=K, sigma=sigma, tau=tau,
                 max_iteration=1000,
                 update_objective_interval=1)
 
-
     for i in range(1,num_iters+1):
+        print("Running iteration " + str(i) + "...")
         pdhg.run(1, verbose=True)
         reg.NiftiImageData(pdhg.get_output()).write(outp_prefix + "_iters" + str(i))
 
