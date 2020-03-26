@@ -32,7 +32,7 @@ import os
 from ast import literal_eval
 from glob import glob
 from docopt import docopt
-from sirf.Utilities import error, show_2D_array
+from sirf.Utilities import error, show_2D_array, examples_data_path
 import pylab
 import sirf.Reg as reg
 import sirf.STIR as pet
