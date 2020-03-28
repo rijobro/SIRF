@@ -55,9 +55,9 @@ endif (BUILD_PYTHON)
 if (BUILD_MATLAB)
 
   add_library(mig mig.cpp)
-  target_include_directories(mig PUBLIC ${Matlab_INCLUDE_DIRS})
+  target_include_directories(mig PRIVATE ${Matlab_INCLUDE_DIRS})
   add_library(msirf SHARED msirf.c)
-  target_include_directories(msirf PUBLIC ${Matlab_INCLUDE_DIRS})
+  target_include_directories(msirf PRIVATE ${Matlab_INCLUDE_DIRS})
   SET_TARGET_PROPERTIES(msirf PROPERTIES SUFFIX ".${MATLAB_MEX_EXT}" PREFIX "${MATLAB_PREFIX}") 
   target_link_libraries(msirf csirf iutilities ${Matlab_LIBRARIES})
 

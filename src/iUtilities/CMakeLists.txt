@@ -64,7 +64,7 @@ if(BUILD_MATLAB)
   # fix output name and link flags
   SET_TARGET_PROPERTIES(miutilities PROPERTIES
         SUFFIX ".${MATLAB_MEX_EXT}" PREFIX "${MATLAB_PREFIX}") 
-  target_link_libraries(miutilities iutilities ${Matlab_LIBRARIES} )
+  target_link_libraries(miutilities iutilities)# ${Matlab_LIBRARIES} )
 
   INSTALL(TARGETS miutilities DESTINATION "${MATLAB_DEST}")
   INSTALL(FILES miutilities.h DESTINATION "${MATLAB_DEST}")

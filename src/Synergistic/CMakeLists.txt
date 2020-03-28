@@ -30,6 +30,7 @@ FOREACH(elem ${SYN_executables})
     ADD_EXECUTABLE(${elem} ${elem}.cpp ${STIR_REGISTRIES})
     TARGET_LINK_LIBRARIES(${elem} LINK_PUBLIC csirf iutilities cstir cgadgetron Reg)
     INSTALL(TARGETS ${elem} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+    # TARGET_INCLUDE_DIRECTORIES(${elem} PRIVATE "${Matlab_INCLUDE_DIRS}")
 ENDFOREACH(elem ${SYN_executables})
 
 # Tests

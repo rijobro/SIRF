@@ -91,10 +91,12 @@ else()
   target_link_libraries(Reg PUBLIC Boost::system Boost::filesystem)
 endif()
 
+# message(FATAL_ERROR "Matlab_INCLUDE_DIRS = ${Matlab_INCLUDE_DIRS}")
+
 # Link Matlab for SPM
 IF(SPM_FOUND)
   TARGET_INCLUDE_DIRECTORIES(Reg PUBLIC "${Matlab_INCLUDE_DIRS}")
-  TARGET_LINK_LIBRARIES(Reg PUBLIC "${Matlab_LIBRARIES}")
+  TARGET_LINK_LIBRARIES(Reg PRIVATE ${Matlab_ENGINE_LIBRARY} ${Matlab_DATAARRAY_LIBRARY})
   target_compile_definitions(Reg PUBLIC SIRF_SPM)
 ENDIF()
 

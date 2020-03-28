@@ -20,17 +20,23 @@
 if (BUILD_MATLAB)
 	# if on linux, engine is in funny place
 	if("${CMAKE_SYSTEM}" MATCHES "Linux")
-		list(APPEND Matlab_LIBRARIES 
-			"${Matlab_ROOT_DIR}/extern/bin/glnxa64/libMatlabEngine.so" 
-			"${Matlab_ROOT_DIR}/extern/bin/glnxa64/libMatlabDataArray.so")
+		# list(APPEND Matlab_LIBRARIES 
+		# 	"${Matlab_ROOT_DIR}/extern/bin/glnxa64/libMatlabEngine.so" 
+		# 	"${Matlab_ROOT_DIR}/extern/bin/glnxa64/libMatlabDataArray.so")
 	endif()
 
-	find_package(SPM QUIET)
-	if(SPM_FOUND)
-		MESSAGE(STATUS "SPM found")
-		set(SPM_BOOL_STR "1")
+	OPTION(DISABLE_SPM "disable SPM" OFF)
+	if (NOT DISABLE_SPM)
+		find_package(SPM QUIET)
+		if(SPM_FOUND)
+			MESSAGE(STATUS "SPM found")
+			set(SPM_BOOL_STR "1")
+		else()
+			MESSAGE(STATUS "SPM not found")
+			set(SPM_BOOL_STR "0")
+		endif()
 	else()
-		MESSAGE(STATUS "SPM not found")
+		SET(SPM_FOUND OFF)
 		set(SPM_BOOL_STR "0")
 	endif()
 else()
