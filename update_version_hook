@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# only for master
+branch=$(git rev-parse --symbolic --abbrev-ref $refname)
+if [ "$branch" != "master" ]; then
+	exit 0
+fi
+# Get version
 echo "Update the build version number"
 version_file=`git rev-parse --show-toplevel`/SIRF_version.txt
 if [ ! -f ${version_file} ]; then
@@ -7,12 +13,13 @@ if [ ! -f ${version_file} ]; then
 	exit 1
 fi
 current_val=$(cat ${version_file})
-echo $current_val
+# Check it worked
 if [ "${current_val}" == "" ]; then
 	echo "File ${version_file} is empty. Abort"
 	exit 1
 fi
+# Increment value
 new_val="${current_val%.*}.$((${current_val##*.}+1))"
-echo "Build version is updated from ${current_val} to ${new_val}"
+echo "Patch version is updated from ${current_val} to ${new_val}"
 echo "${new_val}" > ${version_file}
 git add ${version_file}
