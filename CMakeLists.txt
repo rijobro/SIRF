@@ -49,14 +49,26 @@ if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "type of build: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
-####### Set Version number etc
-set(VERSION_MAJOR   2 )
-set(VERSION_MINOR   1 )
-set(VERSION_PATCH   0 )
+# Define the pre-commit hook for developer
+find_package(Git)
+if(GIT_FOUND)
+  message(STATUS "Found Git")
+  file(COPY "${CMAKE_SOURCE_DIR}/update_version_hook" DESTINATION "${CMAKE_SOURCE_DIR}/.git/hooks" USE_SOURCE_PERMISSIONS)
+  file(RENAME "${CMAKE_SOURCE_DIR}/.git/hooks/update_version_hook" "${CMAKE_SOURCE_DIR}/.git/hooks/pre-commit")
+endif(GIT_FOUND)
+# Get version numbers from SIRF_version.txt
+file(READ ${CMAKE_SOURCE_DIR}/SIRF_version.txt SIRF_VERSION)
+string(REGEX REPLACE "\n$" "" SIRF_VERSION "${SIRF_VERSION}")
+string(REPLACE "." ";" VERSION_LIST ${SIRF_VERSION})
+list(LENGTH VERSION_LIST list_size)
+if (NOT ${list_size} EQUAL "3")
+  message(FATAL_ERROR "Something went wrong with SIRF version number.")
+ENDIF()
+list(GET VERSION_LIST 0 VERSION_MAJOR)
+list(GET VERSION_LIST 1 VERSION_MINOR)
+list(GET VERSION_LIST 2 VERSION_PATCH)
 mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
-set(SIRF_VERSION
-  ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 option(SIRF_INSTALL_DEPENDENCIES "Install dlls etc" WIN32)
 ####### CMake path
