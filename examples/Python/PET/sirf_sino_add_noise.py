@@ -6,7 +6,7 @@ Usage:
 Options:
   -s <file>, --in_sino=<file>   input sinogram
   -o <path>, --out_sino=<path>  output sinogram (default: <input>_<percentage>)
-  -p <int>,  --per=<int>        percentage of counts to keep
+  -p <float>, --per=<float>     percentage of counts to keep
 """
 
 # CCP PETMR Synergistic Image Reconstruction Framework (SIRF)
@@ -30,15 +30,30 @@ from sirf.Utilities import error
 import sirf.STIR as pet
 import numpy as np
 from docopt import docopt
+import argparse
 
-__version__ = '0.1.0'
-args = docopt(__doc__, version=__version__)
+class Range(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
 
-# Get filenames
-f_in_sino = args['--sino']
-f_out_sino = args['--img']
-percentage_counts = int(args['--per'])
+    def __eq__(self, other):
+        return self.start <= other <= self.end
 
+    def __contains__(self, item):
+        return self.__eq__(item)
+
+    def __iter__(self):
+        yield self
+
+    def __str__(self):
+        return '[{0},{1}]'.format(self.start, self.end)
+
+parser = argparse.ArgumentParser(description='Add noise to a sinogram.')
+parser.add_argument('percentage', type=float, help='Percentage of counts', metavar='percentage', choices=[Range(0.0, 100.0)])
+parser.add_argument('sino_in', type=str, help='Input sinogram')
+parser.add_argument('sino_out', type=str, nargs='?', help='Output sinogram prefix')
+args = parser.parse_args()
 
 def add_sino_noise(fraction_of_counts, sinogram):
     sino_arr = sinogram.as_array()
@@ -56,9 +71,14 @@ def add_sino_noise(fraction_of_counts, sinogram):
 
 
 def main():
-    sino = pet.AcquisitionData(f_in_sino)
-    sino = add_sino_noise(float(percentage_counts)/100.)
-    sino.write(f_out_sino + "_" + str(percentage_counts) + "-percent")
+    sino = pet.AcquisitionData(args.sino_in)
+    sino = add_sino_noise(args.percentage/100., sino)
+
+    if args.sino_out:
+        f_out = args.sino_out
+    else:
+        f_out = args.sino_in + "-" + args.percentage.replace('.','_') + '-percent'
+    sino.write(f_out)
 
 
 # if anything goes wrong, an exception will be thrown 
