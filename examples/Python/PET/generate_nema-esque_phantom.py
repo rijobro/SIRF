@@ -120,8 +120,11 @@ def main():
     am = get_acquisition_model(sino_templ, image)
     sino = am.forward(image)
     sino.write(f_out_sino + "_100-percent")
-    for i in range(10, 100, 10):
-        noisy_sino = add_sino_noise(10/100, sino)
+
+    # Different noise realisations
+    count_fractions=[0.1, 1, 10, 50]
+    for i in count_fractions:
+        noisy_sino = add_sino_noise(i/100, sino)
         noisy_sino.write(f_out_sino + "_" + str(i) + "-percent")
 
 
