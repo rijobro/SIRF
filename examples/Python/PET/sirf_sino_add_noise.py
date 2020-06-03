@@ -1,14 +1,3 @@
-"""Add noise to a sinogram
-
-Usage:
-  sino_to_image [--help | options]
-
-Options:
-  -s <file>, --in_sino=<file>   input sinogram
-  -o <path>, --out_sino=<path>  output sinogram (default: <input>_<percentage>)
-  -p <float>, --per=<float>     percentage of counts to keep
-"""
-
 # CCP PETMR Synergistic Image Reconstruction Framework (SIRF)
 # Copyright 2020 University College London.
 #
@@ -29,7 +18,6 @@ Options:
 from sirf.Utilities import error
 import sirf.STIR as pet
 import numpy as np
-from docopt import docopt
 import argparse
 
 class Range(object):
