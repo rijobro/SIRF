@@ -733,6 +733,8 @@ int main(int argc, char* argv[])
         // Check registration with filenames
         NA.set_reference_image_filename(ref_aladin_filename);
         NA.set_floating_image_filename(flo_aladin_filename);
+        NA.SetVerbose(true);
+        NA.SetInterpolationToNearestNeighbor();
         NA.process();
 
         const std::shared_ptr<const NiftiImageData3D<float> >             warped_sptr       = std::dynamic_pointer_cast<const NiftiImageData3D<float> >(NA.get_output_sptr());

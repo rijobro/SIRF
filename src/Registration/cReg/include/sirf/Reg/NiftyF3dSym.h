@@ -84,6 +84,30 @@ public:
     /// Print all wrapped methods
     static void print_all_wrapped_methods();
 
+    void SetCompositionStepNumber(    const int      arg1);
+    void SetInverseConsistencyWeight( const dataType arg1);
+    void SetJacobianLogWeight(        const dataType arg1);
+    void SetLinearEnergyWeight(       const dataType arg1);
+    void SetWarpedPaddingValue(       const dataType arg1);
+    void SetBendingEnergyWeight(      const dataType arg1);
+    void SetFloatingSmoothingSigma(   const dataType arg1);
+    void SetGradientSmoothingSigma(   const dataType arg1);
+    void SetReferenceSmoothingSigma(  const dataType arg1);
+    void SetLNCCKernelType(           const int      arg1);
+    void SetLevelNumber(              const unsigned arg1);
+    void SetLevelToPerform(           const unsigned arg1);
+    void SetMaximalIterationNumber(   const unsigned arg1);
+    void SetPerturbationNumber(       const unsigned arg1);
+    void SetSSDWeight(                const int      arg1, const int      arg2);
+    void SetLNCCWeight(               const int      arg1, const double   arg2);
+    void SetNMIWeight(                const int      arg1, const double   arg2);
+    void SetKLDWeight(                const int      arg1, const unsigned arg2);
+    void SetFloatingThresholdUp(      const unsigned arg1, const dataType arg2);
+    void SetFloatingThresholdLow(     const unsigned arg1, const dataType arg2);
+    void SetReferenceThresholdUp(     const unsigned arg1, const dataType arg2);
+    void SetReferenceThresholdLow(    const unsigned arg1, const dataType arg2);
+    void SetSpacing(                  const unsigned arg1, const dataType arg2);
+
 protected:
 
     /// Check parameters

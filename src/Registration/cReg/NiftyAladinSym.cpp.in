@@ -151,6 +151,164 @@ ${NR_aladin_runtime_methods}
         else
             throw std::runtime_error("\nUnknown argument: " + par);
     }
+
+    // Process any callbacks
+    this->process_callbacks();
+}
+
+template<class dataType>
+void NiftyAladinSym<dataType>::SetInterpolationToCubic()
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetInterpolationToCubic,
+                          _registration_sptr));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetInterpolationToNearestNeighbor()
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetInterpolationToNearestNeighbor,
+                          _registration_sptr));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetInterpolationToTrilinear()
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetInterpolationToTrilinear,
+                          _registration_sptr));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetAlignCentre(const bool arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetAlignCentre,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetPerformAffine(const bool arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetPerformAffine,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetPerformRigid(const bool arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetPerformRigid,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetVerbose(const bool arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetVerbose,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetBlockPercentage(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetBlockPercentage,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetInterpolation(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetInterpolation,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetBlockStepSize(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetBlockStepSize,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetLevelsToPerform(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetLevelsToPerform,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetMaxIterations(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetMaxIterations,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetNumberOfLevels(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetNumberOfLevels,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetFloatingSigma(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetFloatingSigma,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetInlierLts(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetInlierLts,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetReferenceSigma(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetReferenceSigma,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetFloatingLowerThreshold(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetFloatingLowerThreshold,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetFloatingUpperThreshold(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetFloatingUpperThreshold,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetReferenceLowerThreshold(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetReferenceLowerThreshold,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetReferenceUpperThreshold(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetReferenceUpperThreshold,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetWarpedPaddingValue(const float arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetWarpedPaddingValue,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyAladinSym<dataType>::SetAlignCentreMass(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_aladin_sym<dataType>::SetAlignCentreMass,
+                          _registration_sptr, arg1));
 }
 
 namespace sirf {

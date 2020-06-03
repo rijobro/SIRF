@@ -80,6 +80,9 @@ protected:
     /// Set any extra parameters
     virtual void set_parameters() = 0;
 
+    /// Process any callbacks
+    void process_callbacks();
+
     /// Store extra parameters. Only apply them after parsing.
     std::vector<std::string> _extra_params;
 
@@ -95,5 +98,8 @@ protected:
     std::shared_ptr<const NiftiImageData3D<dataType> > _floating_mask_nifti_sptr;
     /// Reference mask (as NiftiImageData3D)
     std::shared_ptr<const NiftiImageData3D<dataType> > _reference_mask_nifti_sptr;
+
+    /// Call back functions
+    std::vector<std::function<void()> > _callback_vector;
 };
 }

@@ -81,6 +81,13 @@ void NiftyRegistration<dataType>::set_up_inputs()
         NiftiBasedRegistration<dataType>::convert_to_NiftiImageData_if_not_already(this->_floating_mask_nifti_sptr, this->_floating_mask_sptr);
 }
 
+template<class dataType>
+void NiftyRegistration<dataType>::process_callbacks()
+{
+    for (auto& f : _callback_vector)
+        f();
+}
+
 namespace sirf {
 template class NiftyRegistration<float>;
 }

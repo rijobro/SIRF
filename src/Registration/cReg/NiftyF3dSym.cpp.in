@@ -178,6 +178,171 @@ ${NR_f3d_runtime_methods}
         else
             throw std::runtime_error("\nUnknown argument: " + par);
     }
+
+    // Process any callbacks
+    this->process_callbacks();
+}
+
+template<class dataType>
+void NiftyF3dSym<dataType>::SetCompositionStepNumber(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetCompositionStepNumber,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetInverseConsistencyWeight(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetInverseConsistencyWeight,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetJacobianLogWeight(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetJacobianLogWeight,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetLinearEnergyWeight(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetLinearEnergyWeight,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetWarpedPaddingValue(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetWarpedPaddingValue,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetBendingEnergyWeight(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetBendingEnergyWeight,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetFloatingSmoothingSigma(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetFloatingSmoothingSigma,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetGradientSmoothingSigma(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetGradientSmoothingSigma,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetReferenceSmoothingSigma(const dataType arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetReferenceSmoothingSigma,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetLNCCKernelType(const int arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetLNCCKernelType,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetLevelNumber(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetLevelNumber,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetLevelToPerform(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetLevelToPerform,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetMaximalIterationNumber(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetMaximalIterationNumber,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetPerturbationNumber(const unsigned arg1)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetPerturbationNumber,
+                          _registration_sptr, arg1));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetSSDWeight(const int arg1, const int arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetSSDWeight,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetLNCCWeight(const int arg1, const double arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetLNCCWeight,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetNMIWeight(const int arg1, const double arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetNMIWeight,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetKLDWeight(const int arg1, const unsigned arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetKLDWeight,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetFloatingThresholdUp(const unsigned arg1, const dataType arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetFloatingThresholdUp,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetFloatingThresholdLow(const unsigned arg1, const dataType arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetFloatingThresholdLow,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetReferenceThresholdUp(const unsigned arg1, const dataType arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetReferenceThresholdUp,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetReferenceThresholdLow(const unsigned arg1, const dataType arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetReferenceThresholdLow,
+                          _registration_sptr, arg1, arg2));
+}
+template<class dataType>
+void NiftyF3dSym<dataType>::SetSpacing(const unsigned arg1, const dataType arg2)
+{
+    this->_callback_vector.push_back(
+                std::bind(&reg_f3d<dataType>::SetSpacing,
+                          _registration_sptr, arg1, arg2));
 }
 
 namespace sirf {

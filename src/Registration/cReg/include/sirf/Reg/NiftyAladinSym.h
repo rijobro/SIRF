@@ -63,6 +63,29 @@ public:
     /// Print all wrapped methods
     static void print_all_wrapped_methods();
 
+    void SetInterpolationToCubic           ();
+    void SetInterpolationToNearestNeighbor ();
+    void SetInterpolationToTrilinear       ();
+    void SetAlignCentre                    (const bool         arg1);
+    void SetPerformAffine                  (const bool         arg1);
+    void SetPerformRigid                   (const bool         arg1);
+    void SetVerbose                        (const bool         arg1);
+    void SetBlockPercentage                (const int          arg1);
+    void SetInterpolation                  (const int          arg1);
+    void SetBlockStepSize                  (const int          arg1);
+    void SetLevelsToPerform                (const unsigned     arg1);
+    void SetMaxIterations                  (const unsigned     arg1);
+    void SetNumberOfLevels                 (const unsigned     arg1);
+    void SetFloatingSigma                  (const float        arg1);
+    void SetInlierLts                      (const float        arg1);
+    void SetReferenceSigma                 (const float        arg1);
+    void SetFloatingLowerThreshold         (const float        arg1);
+    void SetFloatingUpperThreshold         (const float        arg1);
+    void SetReferenceLowerThreshold        (const float        arg1);
+    void SetReferenceUpperThreshold        (const float        arg1);
+    void SetWarpedPaddingValue             (const float        arg1);
+    void SetAlignCentreMass                (const int          arg1);
+
 protected:
 
     /// Parse parameter file
