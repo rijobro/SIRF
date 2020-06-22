@@ -10,6 +10,8 @@ Options:
                                 by sinogram)
   -S <path>, --out_sino=<path>  output sinogram prefix [default: sino]
   -I <path>, --out_im=<path>    output image filename [default: im]
+  -L <path>, --lblfield=<path>  output labelfield filename
+                                [default: labelfield]
   --min_radius=<int>            num of voxels for smallest sphere [default: 1]
 """
 
@@ -36,6 +38,8 @@ import sirf.Reg as reg
 import numpy as np
 from docopt import docopt
 from math import pi, cos, sin
+import nibabel as nib
+import subprocess
 
 __version__ = '0.1.0'
 args = docopt(__doc__, version=__version__)
@@ -49,12 +53,13 @@ else:
 f_image = args['--img'] if args['--img'] else None
 f_out_im = args['--out_im']
 f_out_sino = args['--out_sino']
+f_out_labelfield = args['--lblfield']
 
 # Get radius of smallest sphere
 min_radius = int(args['--min_radius'])
 
 
-def add_sphere(image, centre, radius, intensity):
+def add_sphere(image, centre, radius, source_num):
     """Add a sphere into the image"""
     for z in range(centre[0] - radius, centre[0] + radius + 1):
         for y in range(centre[1] - radius, centre[1] + radius + 1):
@@ -62,7 +67,7 @@ def add_sphere(image, centre, radius, intensity):
                 dist = pow((centre[0]-z)**2 + (centre[1]-y)**2 +
                            (centre[2]-x)**2, 0.5)
                 if dist <= radius:
-                    image[z, y, x] = intensity
+                    image[z, y, x, source_num] = 1
 
 
 def get_acquisition_model(templ_sino, templ_im):
@@ -88,6 +93,11 @@ def add_sino_noise(fraction_of_counts, sinogram):
     return noisy_counts
 
 
+def save_to_nii(im, fname):
+    """Save as nifti"""
+    reg.ImageData(im).write(fname)
+
+
 def main():
     sino_templ = pet.AcquisitionData(f_sino)
     if f_image:
@@ -95,34 +105,70 @@ def main():
         image.fill(0.0)
     else:
         image = sino_templ.create_uniform_image(0.0)
-    im_arr = image.as_array()
+
+    # Image dimensions
+    dims = np.array(image.dimensions())
 
     # Check image dimensions
-    dims = np.array(image.dimensions())
+    dims = np.array(dims)
     min_dims = np.array((127, 285, 285))
     if any(dims < min_dims):
-        raise pet.error(f'Image too small. Minimum size: {min_dims},
-                        actual size: {dims}')
+        raise pet.error(f"""Image too small. Minimum size: {min_dims},
+                        actual size: {dims}""")
+
+    # Number of sources
+    num_sources = 5
+
+    # Create 4D image, where 4th dim is size
+    # of number of sources to be added.
+    labelfield = np.zeros(np.append(dims, num_sources), dtype=np.float32)
+
     # Get centre of image
     centre = dims//2
     # Radius of source centres is quarter of x or y dim (whichever is smaller)
     r = np.min(dims[1:2]//4)
 
-    # Loop over number of sources
-    num_sources = 5
-    intensity = 10.
     for i in range(num_sources):
         # get angle. use minus pi/2 to start at top (y=0)
         theta = i * 2*pi/num_sources - pi/2
         # Point is (r,theta)->(x,y) + centre
         point = np.array((0, r*sin(theta), r*cos(theta)), dtype=np.int32)
         point += centre
-        add_sphere(im_arr, point, (i+1)*min_radius, intensity)
+        add_sphere(labelfield, point, (i+1)*min_radius, i)
+
+    # Convert labelfield to image by flattening 4th dimension, and
+    # multiplying by intensity
+    intensity = 10.
+    im_arr = np.sum(labelfield, axis=3)
+    if np.any(im_arr > 1.0):
+        raise error("sum across 4th dim of labelfield should be <= 1")
+    im_arr *= intensity
 
     # Fill back into image
     image.fill(im_arr)
     # Save
-    reg.ImageData(image).write(f_out_im)
+    save_to_nii(image, f_out_im)
+
+    # Save labelfield
+    labelfield_3d = image.copy()
+    labelfield_3d_nibs = []
+    for i in range(num_sources):
+        labelfield_3d.fill(labelfield[:, :, :, i])
+        temp_fname = f_out_labelfield + str(i) + ".nii"
+        save_to_nii(labelfield_3d, temp_fname)
+        labelfield_3d_nibs.append(nib.load(temp_fname))
+    # Save the background as an ROI
+    background = im_arr == 0
+
+    labelfield_3d.fill(background)
+    temp_fname = f_out_labelfield + "_background.nii"
+    save_to_nii(labelfield_3d, temp_fname)
+    labelfield_3d_nibs.append(nib.load(temp_fname))
+    labelfield_nib = nib.concat_images(labelfield_3d_nibs)
+    labelfield_nib.to_filename(f_out_labelfield)
+
+    print("cool")
+    exit(0)
 
     # Forward project
     am = get_acquisition_model(sino_templ, image)
