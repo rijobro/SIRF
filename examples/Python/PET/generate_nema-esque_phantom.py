@@ -12,7 +12,9 @@ Options:
   -I <path>, --out_im=<path>    output image filename [default: im]
   -L <path>, --lblfield=<path>  output labelfield filename
                                 [default: labelfield]
-  --min_radius=<int>            num of voxels for smallest sphere [default: 1]
+  --radius_factor=<int>         num of voxels for smallest sphere and amount
+                                step size to increase for subsequent spheres
+                                [default: 3]
 """
 
 # CCP PETMR Synergistic Image Reconstruction Framework (SIRF)
@@ -56,7 +58,7 @@ f_out_sino = args['--out_sino']
 f_out_labelfield = args['--lblfield']
 
 # Get radius of smallest sphere
-min_radius = int(args['--min_radius'])
+radius_factor = int(args['--radius_factor'])
 
 
 def add_sphere(image, centre, radius, source_num):
@@ -134,7 +136,7 @@ def main():
         # Point is (r,theta)->(x,y) + centre
         point = np.array((0, r*sin(theta), r*cos(theta)), dtype=np.int32)
         point += centre
-        add_sphere(labelfield, point, (i+1)*min_radius, i)
+        add_sphere(labelfield, point, (i+1)*radius_factor, i)
 
     # Convert labelfield to image by flattening 4th dimension, and
     # multiplying by intensity
