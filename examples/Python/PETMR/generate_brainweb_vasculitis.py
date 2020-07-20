@@ -34,6 +34,7 @@ Options:
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from numba import jit
 import brainweb
 import numpy as np
 from tqdm.auto import tqdm
@@ -69,9 +70,7 @@ def get_brainweb_image():
 
     for f in tqdm([fname], desc="mMR ground truths", unit="subject"):
         vol = brainweb.get_mmr_fromfile(
-            f,
-            petNoise=1, t1Noise=0.75, t2Noise=0.75,
-            petSigma=1, t1Sigma=1, t2Sigma=1)
+            f, petNoise=0, petSigma=0)
 
     return vol['PET']
 
@@ -122,6 +121,26 @@ def get_cylinder_in_im(im_in, length, radius, intensity, tm=None):
     return im
 
 
+@jit(nopython=True)
+def loop_and_replace(arr_out, arr_to_add):
+    """JIT loop."""
+    arr_shape = arr_out.shape
+    arr_to_add_thresh = 0.01 * arr_to_add.max()
+    for ix, iy, iz in np.ndindex(arr_shape):
+        arr_out[ix, iy, iz] = max(arr_out[ix, iy, iz], arr_to_add[ix, iy, iz])
+        if abs(arr_to_add[ix, iy, iz]) > arr_to_add_thresh:
+            arr_out[ix, iy, iz] = arr_to_add[ix, iy, iz]
+
+
+def replace_if_greater(out, to_add):
+    """To add."""
+    out_arr = out.as_array()
+    to_add_arr = to_add.as_array()
+    out_arr = np.maximum(out_arr, to_add_arr)
+    # loop_and_replace(out_arr, to_add_arr)
+    out.fill(out_arr)
+
+
 def main():
     """Do main function."""
 
@@ -138,6 +157,7 @@ def main():
     save_nii(FDG, out_prefix + "_original")
 
     # Parameters
+    side = ('left', 'right')
     distance_from_centre = (cL, cR)
     outer_cylinder_radius = (oRL, oRR)
     inner_cylinder_radius = (iRL, iRR)
@@ -148,8 +168,7 @@ def main():
 
     for i in range(2):
 
-        side = 'left' if i == 0 else 'right'
-        print("Creating " + side + " temporal artery." +
+        print("Creating " + side[i] + " temporal artery..." +
               "\n\tInner radius: " + str(inner_cylinder_radius[i]) +
               "\n\tOuter radius: " + str(outer_cylinder_radius[i]) +
               "\n\tInner intensity: " + str(inner_cylinder_intensity[i]) +
@@ -173,7 +192,9 @@ def main():
             intensity=inner_cylinder_intensity[i] - outer_cylinder_intensity[i]
             )
 
-        out += outer_cylinder
+        # For outer cylinder, need it to replace the skin
+        # So we can't do a simple add, we need to replace
+        replace_if_greater(out, outer_cylinder)
         out += inner_cylinder
     save_nii(out, out_prefix)
 
