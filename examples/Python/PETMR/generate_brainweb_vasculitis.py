@@ -157,7 +157,7 @@ def main():
     save_nii(FDG, out_prefix + "_original")
 
     # Parameters
-    side = ('left', 'right')
+    side = ('right', 'left')
     distance_from_centre = (cL, cR)
     outer_cylinder_radius = (oRL, oRR)
     inner_cylinder_radius = (iRL, iRR)
